@@ -78,7 +78,7 @@ void TaskReadC02(void * pvParameters){
         payload_data_store[CARBON_DIOXIDE].new_data = true;
         // Serial.println(payload_data_store[CARBON_DIOXIDE].id );
 
-         xReturned = xQueueSendToBack(queue_1, &payload_data_store[CARBON_DIOXIDE], portMAX_DELAY);
+         xReturned = xQueueSendToBack(sensor_data_queue, &payload_data_store[CARBON_DIOXIDE], portMAX_DELAY);
         //  Serial.println(xReturned);
 // SemaphoreHandle_t sensorSemaphore = xSemaphoreCreateBinary();
 //          xSemaphoreGive(sensorSemaphore);

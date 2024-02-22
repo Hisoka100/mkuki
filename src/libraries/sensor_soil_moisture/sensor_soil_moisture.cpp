@@ -1,21 +1,19 @@
 /**************************************************************************
-*@file  sensor_soil_moisture.h
+*@file  sensor_soil_moisture.cpp
 *@brief Soil moisture logic headers
 *@author Peter Gichuhi
 **************************************************************************/
 #include "sensor_soil_moisture.h"
-QueueHandle_t queue_1;
+
 extern TaskHandle_t xTaskReadSM;
+extern QueueHandle_t sensor_data_queue;
 uint16_t soil_moisture;
 unsigned long soil_moisture_sensor_inverval = 500; 
 unsigned long soil_moisture_sensor_timer = 0;
 TickType_t xDelay500ms = pdMS_TO_TICKS(5000);
 
 void soil_moisture_sensor_setup(void){
-  queue_1 = xQueueCreate(NUM_OF_SENSORS, sizeof(sensor_data));
-  if (queue_1==NULL){
-    Serial.println("Queue can not be created");
-  }
+
     pinMode(SOIL_MOISTURE_SENSOR, INPUT);
     soil_moisture_sensor_timer = millis();
 
@@ -56,6 +54,7 @@ void TaskSoilMoisture(void * pvParameters){
     uint16_t sm;
 
     xNextWakeTime = xTaskGetTickCount();
+
     while(1){
         Serial.println("Soil Moisture task ");
        
@@ -67,7 +66,7 @@ void TaskSoilMoisture(void * pvParameters){
         payload_data_stores.bytes[1] = (sm >> 8);
         payload_data_stores.new_data = true;
         // Serial.println(payload_data_store[SENSOR_SOIL_MOISTURE].id );
-        xReturned = xQueueSendToBack(queue_1, &payload_data_stores, portMAX_DELAY);
+        xReturned = xQueueSendToBack(sensor_data_queue, &payload_data_stores, portMAX_DELAY);
         // Serial.println(xReturned);
         // xSemaphoreGive(sensorSemaphore);
          vTaskDelayUntil(&xNextWakeTime, mainQUEUE_TICK_COUNT_FOR_1S);

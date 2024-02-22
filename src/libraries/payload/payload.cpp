@@ -5,7 +5,7 @@
 **************************************************************************/
 #include "payload.h"
 
-extern QueueHandle_t queue_1;
+QueueHandle_t sensor_data_queue;
 const uint8_t fw_ver[] = {FIRMWARE_VERSION};
 
 uint8_t resp[] = "<SETTINGS:OK>";
@@ -18,6 +18,13 @@ uint8_t payload_scratchpad[MAX_PAYLOAD_LENGTH];
 bool spear_serial_sensor_type_updated;
 sensor_data  payload_data_store[NUM_OF_SENSORS];
 sensor_data  payload_data_stores;
+
+void payload_setup(void){
+  sensor_data_queue = xQueueCreate(NUM_OF_SENSORS, sizeof(sensor_data));
+  if (sensor_data_queue==NULL){
+    Serial.println("Queue can not be created");
+  }
+}
 
 uint8_t payload_build_pkt( void )
 {
@@ -282,30 +289,33 @@ void payload_collect_sensor_data( void )
 void TaskStoreSoilMoisture(void * pvParameters){
 sensor_data ulRecievedValue;
 portBASE_TYPE xStatus;
-TickType_t xReceiveDelay = pdMS_TO_TICKS( 11000); 
+TickType_t xReceiveDelay = pdMS_TO_TICKS(2000); 
 UBaseType_t xItemsInQueue;
+int8_t sensor_cont = 0;
 
     while(1){
         // if (xSemaphoreTake(sensorSemaphore, portMAX_DELAY) == pdTRUE)
         // {
             
-        xItemsInQueue = uxQueueMessagesWaiting(queue_1);
+        xItemsInQueue = uxQueueMessagesWaiting(sensor_data_queue);
         Serial.print("Items in queue");
         Serial.println(xItemsInQueue);
-        if (xItemsInQueue != 0)
+
+        if (xItemsInQueue == 0)
         {
 			Serial.println("Queue should have been empty!\n");
 		}
-        uint8_t sensor_cont = 0;
-
-         for( sensor_cont; sensor_cont < NUM_OF_SENSORS; sensor_cont++ )
-         {
-            Serial.println("inside the for loop");
-            xStatus = xQueueReceive(queue_1, &ulRecievedValue, portMAX_DELAY);
+        else
+        {      
+        //  for( sensor_cont; sensor_cont < 1; sensor_cont++ )
+        //  {
+            // Serial.println("inside the for loop");
+            xStatus = xQueueReceive(sensor_data_queue, &ulRecievedValue, portMAX_DELAY);
             // Serial.println(xReceived);
-        	if (xStatus== pdPASS) {
-			// Serial.print("Received = ");
-			// Serial.println(ulRecievedValue.id);
+        	if (xStatus== pdPASS)
+            {
+			Serial.print("Received = ");
+			Serial.println(ulRecievedValue.id);
             switch(ulRecievedValue.id){
                 case SOIL_MOISTURE:
                 Serial.println("Soil moisture received");
@@ -313,17 +323,24 @@ UBaseType_t xItemsInQueue;
                 case CARBON_DIOXIDE:
                 Serial.println("Carbon dioxide received");
                 break;
-                case 0:
-                Serial.println("N0 data");
-                break;
                 default:
                 break;
-            }     
+            }    
+
+            // if(ulRecievedValue.id == SOIL_MOISTURE){
+            //     Serial.println("Soil Moisture Received");
+            // }
+
+            // if(ulRecievedValue.id == CARBON_DIOXIDE){
+            //     Serial.println("C02 Received");
+            // }
         }
-		else {
+		else
+        {
 			Serial.println("Could not receive from the queue!\n");
 		}
-     
+        // sensor_cont++;
+        // }
         }
         // vTaskResume(xTaskReadSM);
         // vTaskResume(xTaskReadC02);
