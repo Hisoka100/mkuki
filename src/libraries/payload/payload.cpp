@@ -6,6 +6,8 @@
 #include "payload.h"
 
 QueueHandle_t sensor_data_queue;
+extern SemaphoreHandle_t xSMSemaphore;
+extern TaskHandle_t xTaskCollectSensorData, xTaskReadSM,xTaskReadC02;
 const uint8_t fw_ver[] = {FIRMWARE_VERSION};
 
 uint8_t resp[] = "<SETTINGS:OK>";
@@ -106,7 +108,7 @@ void payload_tick( void )//Can be replaced using rask scheduler
             uint8_t num_bytes_to_send = 0;
 
             // collect data
-             payload_collect_sensor_data();
+            //  payload_collect_sensor_data();
  
             // build the data
             num_bytes_to_send = payload_build_pkt();
@@ -267,36 +269,36 @@ uint8_t payload_parse_new_settings( uint8_t * data )
 }
 
 /* data collection routines */
-void payload_collect_sensor_data( void )
+void TaskCueSensors( void * pvParameters )
 {
+    TickType_t xNextWakeTime;
+    while(1){
     hardware_battery_service();
 
     if(SERIAL_SENSOR_CO2 == active_system_settings.serial_sensor_type){
-       c02_sensor_service(); 
-       soil_moisture_service();    
-       delay(500);
+       vTaskResume(xTaskReadSM);
+       vTaskDelay(pdMS_TO_TICKS(500));
 
     }
     
     else if( (SERIAL_SENSOR_CO2 != active_system_settings.serial_sensor_type) || (true == spear_serial_sensor_type_updated) ){
-        soil_moisture_service();
-        npk_sensor_service();
-        delay(500);
+       vTaskResume(xTaskReadC02);
+       vTaskDelay(pdMS_TO_TICKS(500));
    
+    }
+    vTaskDelayUntil(&xNextWakeTime, mainQUEUE_TICK_COUNT_FOR_1S);
     }
 }
 
-void TaskStoreSoilMoisture(void * pvParameters){
+void TaskCollectSensorData(void * pvParameters){
 sensor_data ulRecievedValue;
 portBASE_TYPE xStatus;
 TickType_t xReceiveDelay = pdMS_TO_TICKS(2000); 
 UBaseType_t xItemsInQueue;
-int8_t sensor_cont = 0;
+
 
     while(1){
-        // if (xSemaphoreTake(sensorSemaphore, portMAX_DELAY) == pdTRUE)
-        // {
-            
+        int8_t sensor_cont = 0;
         xItemsInQueue = uxQueueMessagesWaiting(sensor_data_queue);
         Serial.print("Items in queue");
         Serial.println(xItemsInQueue);
@@ -305,13 +307,11 @@ int8_t sensor_cont = 0;
         {
 			Serial.println("Queue should have been empty!\n");
 		}
+
         else
-        {      
-        //  for( sensor_cont; sensor_cont < 1; sensor_cont++ )
-        //  {
-            // Serial.println("inside the for loop");
+        {   for(sensor_cont; sensor_cont < xItemsInQueue; sensor_cont++ ){
             xStatus = xQueueReceive(sensor_data_queue, &ulRecievedValue, portMAX_DELAY);
-            // Serial.println(xReceived);
+
         	if (xStatus== pdPASS)
             {
 			Serial.print("Received = ");
@@ -326,25 +326,15 @@ int8_t sensor_cont = 0;
                 default:
                 break;
             }    
-
-            // if(ulRecievedValue.id == SOIL_MOISTURE){
-            //     Serial.println("Soil Moisture Received");
-            // }
-
-            // if(ulRecievedValue.id == CARBON_DIOXIDE){
-            //     Serial.println("C02 Received");
-            // }
-        }
+         }
+        
 		else
         {
 			Serial.println("Could not receive from the queue!\n");
 		}
-        // sensor_cont++;
-        // }
         }
-        // vTaskResume(xTaskReadSM);
-        // vTaskResume(xTaskReadC02);
-        vTaskDelay(xReceiveDelay);
-    }
-//   }
+        }
+    vTaskSuspend(xTaskCollectSensorData);
+    // vTaskDelay(xReceiveDelay);
+  }
 }
