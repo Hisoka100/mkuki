@@ -47,6 +47,7 @@ uint8_t get_serial_hex_data( uint8_t * buffer, uint8_t len )
         while( Serial.available() )
         {
             Serial.read(); // clear out the buffer but still return false
+            
         }
     }
 

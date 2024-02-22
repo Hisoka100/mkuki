@@ -58,12 +58,12 @@
 #include "settings/settings.h"
 #endif
 
-#define  WAIT_MS   10000
-#define  WAIT_MSS   10500
+#define  WAIT_MS   20000
+#define  WAIT_MSS   20000
 #define mainQUEUE_TICK_COUNT_FOR_1S			pdMS_TO_TICKS( WAIT_MS )
 #define mainQUEUE_TICK_COUNT_FOR_2S			pdMS_TO_TICKS( WAIT_MSS )
 
-extern QueueHandle_t queue_1;
+extern QueueHandle_t sensor_data_queue;
 extern SemaphoreHandle_t sensorSemaphore;
 
 extern TaskHandle_t xTaskReadSM;

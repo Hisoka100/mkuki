@@ -96,11 +96,11 @@ extern sensor_data  payload_data_store[NUM_OF_SENSORS];
 extern sensor_data  payload_data_stores;
 extern bool sensor_type_updated;
 // extern QueueHandle_t queue_1;
-
+void payload_setup(void);
 void payload_tick(void);
-void payload_collect_sensor_data( void );
+void TaskCueSensors( void * pvParameters );
 uint8_t payload_parse_new_settings( uint8_t * data );
 void get_new_settings( void );
-void TaskStoreSoilMoisture(void * pvParameters);
+void TaskCollectSensorData(void * pvParameters);
 
 #endif
